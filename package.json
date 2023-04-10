@@ -1,0 +1,32 @@
+{
+  "name": "webindexeddb",
+  "version": "1.0.0",
+  "description": "indexeddb封装，简单查询，可用于前端mock数据",
+  "main": "IndexdbStore.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel package --out-dir lib",
+    "webpack": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yinyangshibolange/webindexeddb.git"
+  },
+  "keywords": [
+    "indexeddb",
+    "mock",
+    "前端数据库"
+  ],
+  "author": "hy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yinyangshibolange/webindexeddb/issues"
+  },
+  "homepage": "https://github.com/yinyangshibolange/webindexeddb#readme",
+  "devDependencies": {
+
+  },
+  "files": [
+    "lib/"
+  ]
+}
