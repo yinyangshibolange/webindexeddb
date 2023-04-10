@@ -1,15 +1,11 @@
-var babel = require("gulp-babel")
-var gulp = require("gulp")
-var uglify = require('gulp-uglify');        //    ----- //压缩JS
-// var cssmin = require('gulp-cssmin');        //-----//压缩CSS
-// var imagemin = require('gulp-imagemin');// ----- //压缩图片
-// var htmlmin = require('gulp-htmlmin'); 　// -----//压缩html
-// var rename = require('gulp-rename'); 　//　-----//重命名
+const { src, dest } = require('gulp');
+const babel = require('gulp-babel');
+const uglify = require('gulp-uglify');
 
-gulp.task('uglify', function (done) {
- gulp.src('./package/index.js')
-  .pipe(babel())
-  .pipe(uglify())
-  .pipe(gulp.dest('./dist'))
- done()
-})
+exports.default = function() {
+  return src('package/*.js')
+    .pipe(babel())
+    .pipe(src('vendor/*.js'))
+    .pipe(uglify())
+    .pipe(dest('output/'));
+}
