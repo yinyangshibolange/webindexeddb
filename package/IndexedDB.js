@@ -32,9 +32,9 @@ export class IndexedDB {
     let objectStore
     if (Array.isArray(this.dbInfo.stores)) {
      this.dbInfo.stores.forEach(db_store => {
-      const { storeName, indexs } = db_store
+      const { storeName, indexs, mainKey } = db_store
       if (!this.dbInfo.db.objectStoreNames.contains(storeName)) {
-       objectStore = this.dbInfo.db.createObjectStore(storeName, { keyPath: 'id' }) // 创建表
+       objectStore = this.dbInfo.db.createObjectStore(storeName, { keyPath: mainKey || "id" }) // 创建表
       }
 
       if (Array.isArray(indexs)) {
@@ -59,7 +59,7 @@ export class IndexedDB {
   * 打开数据库
   * @param {*} storeName 打开数据库表
   * @param {*} indexs 索引列表
-  * @returns 
+  * @returns
   */
  openDB () {
   return new Promise((resolve, reject) => {
@@ -80,7 +80,7 @@ export class IndexedDB {
   * 新增数据
   * @param {*} storeName 打开数据库表
   * @param {*} data 数据包含id
-  * @returns 
+  * @returns
   */
  addData (storeName, data) {
   return new Promise((resolve, reject) => {
@@ -102,7 +102,7 @@ export class IndexedDB {
   * 通过键查找数据
   * @param {*} storeName 打开数据库表
   * @param {*} key 键
-  * @returns 
+  * @returns
   */
  getDataByKey (storeName, key) {
   return new Promise((resolve, reject) => {
@@ -123,7 +123,7 @@ export class IndexedDB {
  /**
   * 遍历所有数据
   * @param {*} storeName 打开数据库表
-  * @returns 
+  * @returns
   */
  cursorGetData (storeName) {
   let list = []
@@ -152,7 +152,7 @@ export class IndexedDB {
   * @param {*} storeName 打开数据库表
   * @param {*} page 当前页
   * @param {*} pageSize 分页数
-  * @returns 
+  * @returns
   */
  cursorPage (storeName, params, page = 1, pageSize = 10) {
   return new Promise((resolve, reject) => {
@@ -213,7 +213,7 @@ export class IndexedDB {
   * @param {*} storeName 打开数据库表
   * @param {*} indexName 索引名称
   * @param {*} indexValue 索引值
-  * @returns 
+  * @returns
   */
  getDataByIndex (storeName, indexName, indexValue) {
   let store = this.dbInfo.db.transaction(storeName, 'readwrite').objectStore(storeName)
@@ -233,7 +233,7 @@ export class IndexedDB {
   * @param {*} storeName 打开数据库表
   * @param {*} indexName 索引名称
   * @param {*} indexValue 索引值
-  * @returns 
+  * @returns
   */
  cursorGetDataByIndex (storeName, params, ) {
   let list = []
@@ -250,7 +250,7 @@ export class IndexedDB {
     vals.push(params[key])
    }
    keyPath = keyPath.substring(1)
- 
+
    const {name} = indexs.find(item => item.keyPath === keyPath) || {}
    if(!name) {
     resolve([])
@@ -281,7 +281,7 @@ export class IndexedDB {
   * 修改数据
   * @param {*} storeName 打开数据库表
   * @param {*} data 数据
-  * @returns 
+  * @returns
   */
  updateDB (storeName, data) {
   let request = this.dbInfo.db.transaction([storeName], 'readwrite') // 事务对象
@@ -303,7 +303,7 @@ export class IndexedDB {
   * 删除数据
   * @param {*} storeName 打开数据库表
   * @param {*} id id
-  * @returns 
+  * @returns
   */
  deleteDB (storeName, id) {
   let request = this.dbInfo.db.transaction([storeName], 'readwrite').objectStore(storeName).delete(id)
@@ -322,7 +322,7 @@ export class IndexedDB {
  /**
   * 删除数据库
   * @param {String} dbName 数据库表名
-  * @returns 
+  * @returns
   */
  deleteDBAll (dbName) {
   let deleteRequest = window.indexedDB.deleteDatabase(dbName)

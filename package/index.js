@@ -1,60 +1,90 @@
 import {IndexedDB} from "./IndexedDB.js"
 
-function listSort (list, sortParams = []) {
+function guid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+function listSort(list, sortParams = []) {
     const sort_params = [{
         key: 'addtime',
         type: 'desc'
-    }, ...sortParams]
-    // 默认按addtime排序
-    return list.sort((a, b) => {
-        let flag = false
-        for (let i = 0; i < sort_params.length; i++) {
-            const item = sort_params[i]
-            let type, key
-            if (typeof item === 'string') {
-                type = 'desc'
-                key = item
-            } else if (typeof item === 'object') {
-                type = typeof item.type === 'string' ? item.type.toLowerCase() : 'desc'
-                key = item.key
-            }
-            if (type === 'desc' && b[key] > a[key]) {
-                flag = true
-                break
-            } else if (type === 'asc' && a[key] > b[key]) {
-                flag = true
-                break
-            }
+    }, ...(sortParams || [])]
+    let list_temp = list
+    sort_params.forEach(item => {
+        let type, key
+        if (typeof item === 'string') {
+            type = 'desc'
+            key = item
+        } else if (typeof item === 'object') {
+            type = typeof item.type === 'string' ? item.type.toLowerCase() : 'desc'
+            key = item.key
         }
-        return flag
+        if (type === 'desc') {
+            list_temp = list_temp.sort((a, b) => b[key] - a[key])
+        } else if (type === 'asc') {
+            list_temp = list_temp.sort((a, b) => a[key] - b[key])
+        }
     })
+    return list_temp
+}
+
+Date.prototype.Format = function (fmt) {
+    var o = {
+        "M+": this.getMonth() + 1,                 //月份
+        "d+": this.getDate(),                    //日
+        "h+": this.getHours(),                   //小时
+        "m+": this.getMinutes(),                 //分
+        "s+": this.getSeconds(),                 //秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+        "S": this.getMilliseconds()             //毫秒
+    };
+    if (/(y+)/.test(fmt))
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt))
+            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+}
+
+function findStoreMainKey(stores, storeName) {
+    const store = stores.find(item => item.storeName === storeName)
+    if (store) {
+        return store.mainKey || "id"
+    }
 }
 
 // mock数据持久化类，当前用indexedDb做持久化
-export class IndexdbStore {
-    db = null
-    constructor(options = {
-        name: "myindexdb", // 你的indexdb数据库名称
-        version: 1, // 如果修改了options里的stores参数，那么必须修改version版本号，不然stores的修改不会生效
-        stores: [
-            //     { // 类似数据库表
-            //     storeName: "imageList",
-            //     indexs: [{
-            //         name: "parentid", // 索引名称
-            //         keyPath: "parentid", // 索引字段
-            //         params: {
-            //             unique: false,
-            //         }
-            //     }]
-            // }
-        ]
-    }) {
+class IndexdbStore {
+    name = null // 数据库名称
+    version = null // 数据库版本号
+    stores = null // 数据库表配置
+    db = null // IndexedDB 封装对象
+
+    constructor(options) {
         if (!this.db) {
-            const { name, version, stores } = options
-            this.db = new IndexedDB({
-                name, version, db: null, stores
-            })
+            this.rebuild(options)
         }
+    }
+
+    /**
+     * 数据库升级重构
+     * @param options 传入参数，同构造函数参数，可为空
+     */
+    rebuild(options) {
+        const {name, version, stores} = options || {}
+        this.stores = stores || this.stores
+        this.name = name || this.name
+        this.version = version || this.version
+        this.db = new IndexedDB({
+            name: name || this.name,
+            version: version || this.version,
+            db: null,
+            stores: stores || this.stores,
+        })
+
     }
 
 
@@ -65,7 +95,14 @@ export class IndexdbStore {
      * @param {Object} data 数据
      * @returns {Object} {code,data,msg}
      */
-    async addItem (storeName, data) {
+    async addItem(storeName, data) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
@@ -77,6 +114,7 @@ export class IndexdbStore {
         const now = new Date()
         try {
             const res = await this.db.addData(storeName, {
+                [mainKey]: guid(),
                 ...data,
                 addtime: now.getTime(),
                 addtimeformat: now.Format("yyyy-MM-dd hh:mm:ss"),
@@ -102,7 +140,14 @@ export class IndexdbStore {
      * @param {Array} list 数据列表
      * @returns {Object} {code,data,msg}
      */
-    async addBatch (storeName, list) {
+    async addBatch(storeName, list) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         if (!Array.isArray(list) || list.length === 0) {
             return {
                 code: -1,
@@ -123,6 +168,7 @@ export class IndexdbStore {
             const data = list[i]
             try {
                 const res = await this.db.addData(storeName, {
+                    [mainKey]: guid(),
                     ...data,
                     addtime: now.getTime(),
                     addtimeformat: now.Format("yyyy-MM-dd hh:mm:ss"),
@@ -154,7 +200,14 @@ export class IndexdbStore {
      * @param {Object} data 数据
      * @returns {Object} {code,data,msg}
      */
-    async updateItem (storeName, data) {
+    async updateItem(storeName, data) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
@@ -193,7 +246,14 @@ export class IndexdbStore {
      * @param {Array} list 数据列表
      * @returns {Object} {code,data,msg}
      */
-    async updateBatch (storeName, list) {
+    async updateBatch(storeName, list) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         if (!Array.isArray(list) || list.length === 0) {
             return {
                 code: -1,
@@ -243,7 +303,14 @@ export class IndexdbStore {
      * @param {String} id 数据id
      * @returns  {Object} {code,data,msg}
      */
-    async delItem (storeName, id) {
+    async delItem(storeName, id) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
@@ -274,7 +341,14 @@ export class IndexdbStore {
      * @param {Array} ids id列表
      * @returns {Object} {code,data,msg}
      */
-    async delBatch (storeName, ids) {
+    async delBatch(storeName, ids) {
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         if (!Array.isArray(ids) || ids.length === 0) {
             return {
                 code: -1,
@@ -317,7 +391,14 @@ export class IndexdbStore {
      * @param {Array} sortParams 排序参数[{key,type}]，默认有一个{key:'addtime',type:'desc'}参数
      * @returns {Object} {code,data,msg}
      */
-    async getAll (storeName, sortParams = []) { // 查询所有，不分页
+    async getAll(storeName, sortParams = []) { // 查询所有，不分页
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
@@ -350,15 +431,28 @@ export class IndexdbStore {
      * @param {Array} sortParams 排序参数[{key,type}]，默认有一个{key:'addtime',type:'desc'}参数
      * @returns {Object} {code,data,msg}
      */
-    async queryAll (storeName, params, sortParams = []) { // 条件查询，不分页
+    async queryAll(storeName, params, sortParams = []) { // 条件查询，不分页
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
             console.error(err)
             return
         }
+        const keyLen = Object.keys(params || {}).length
         try {
-            let list = await this.db.cursorGetDataByIndex(storeName, params)
+            let list
+            if (keyLen > 0) {
+                list = await this.db.cursorGetDataByIndex(storeName, params)
+            } else {
+                list = await this.db.cursorGetData(storeName)
+            }
             list = listSort(list, sortParams)
             this.db.closeDB()
             return {
@@ -383,7 +477,14 @@ export class IndexdbStore {
      * @param {Number} pagesize 每页的项目数
      * @returns {Object} {code,data,msg}
      */
-    async queryPage (storeName, params, sortParams, page = 1, pagesize = 10,) { // 条件查询，分页
+    async queryPage(storeName, params, sortParams, page = 1, pagesize = 10,) { // 条件查询，分页
+        let mainKey = findStoreMainKey(this.stores, storeName)
+        if (!mainKey) {
+            return {
+                code: -1,
+                msg: "表不存在，请检查您的配置",
+            }
+        }
         try {
             await this.db.openDB(storeName)
         } catch (err) {
@@ -392,8 +493,14 @@ export class IndexdbStore {
                 msg: err
             }
         }
+        const keyLen = Object.keys(params || {}).length
         try {
-            let list = await this.db.cursorGetDataByIndex(storeName, params)
+            let list
+            if (keyLen > 0) {
+                list = await this.db.cursorGetDataByIndex(storeName, params)
+            } else {
+                list = await this.db.cursorGetData(storeName)
+            }
             list = listSort(list, sortParams)
             this.db.closeDB()
             return {
@@ -415,3 +522,7 @@ export class IndexdbStore {
 
 
 }
+
+// window.IndexdbStore = IndexdbStore
+
+export default IndexdbStore

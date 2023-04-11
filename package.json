@@ -2,11 +2,10 @@
   "name": "webindexeddb",
   "version": "1.0.0",
   "description": "indexeddb封装，简单查询，可用于前端mock数据",
-  "main": "IndexdbStore.js",
+  "main": "lib/bundle.umd.min.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel package --out-dir lib",
-    "gulp": "gulp"
+    "rollup": "rollup -c rollup.config.js"
   },
   "repository": {
     "type": "git",
@@ -25,15 +24,16 @@
   "homepage": "https://github.com/yinyangshibolange/webindexeddb#readme",
   "devDependencies": {
     "@babel/core": "^7.21.4",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
     "@babel/preset-env": "^7.21.4",
-    "babel-preset-es2015": "^6.24.1",
-    "gulp": "^4.0.2",
-    "gulp-babel": "^8.0.0",
-    "gulp-uglify": "^3.0.2"
+    "@rollup/plugin-babel": "^6.0.3",
+    "@rollup/plugin-node-resolve": "^15.0.2",
+    "rollup": "^3.20.2",
+    "rollup-plugin-terser": "^7.0.2"
   },
   "files": [
-    "lib/"
-  ]
+    "lib/bundle.umd.min.js","README.md"
+  ],
+  "dependencies": {
+    "core-js": "^3.30.0"
+  }
 }
