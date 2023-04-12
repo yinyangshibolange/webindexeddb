@@ -112,7 +112,7 @@ const indexedStore = new IndexdbStore({
 
 上面3个属性已在上方列出
 
-- db （IndexedDB对象）
+- db （IndexedDB对象，无需使用）
 
 ### IndexdbStore对象包含10个数据库操作函数
 
