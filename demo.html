@@ -3,58 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <title>IndexedDb demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/mhDoLbDldZc3qpsJHpLogda//BVZbgYuw6kof4u2FrCedxOtgRZDTHgHUhOCVim" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-/mhDoLbDldZc3qpsJHpLogda//BVZbgYuw6kof4u2FrCedxOtgRZDTHgHUhOCVim"
+            crossorigin="anonymous"></script>
     <script src="./lib/bundle.umd.js"></script>
+    <script src="./demo_js/index.js"></script>
+    <style>
+        .page-container {
+            padding: 20px;
+        }
+
+        .card {
+            display: none;
+            padding: 20px;
+        }
+
+        .btn {
+            white-space: nowrap;
+            margin-left: 20px;
+        }
+    </style>
 </head>
 <body>
-<div>
+<div class="page-container">
+    <p class="fw-semibold">demo中用到了bootstrap，并不是IndexdbStore的依赖</p>
     <ul class="nav nav-tabs">
         <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="#">Active</a>
+            <a id="a_data" class="nav-link active" aria-current="page" onclick="showDemo('data')">demo数据表</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link disabled">Disabled</a>
+            <a id="a_file" class="nav-link" onclick="showDemo('file')">demo图片文件表</a>
         </li>
     </ul>
-    <div class="row">
-        <div class="col card">
-            <div id="data_demo" class=" ">
-                <div class="title fs-3">demo数据表</div>
-       <div class="d-flex">
-           <input id="my_input"  class="form-control" type="text" placeholder="请输入数据" oninput="inputData()">
-           <button  type="button" class="btn btn-primary" onclick="addOneDataItem()">添加一项并刷新</button>
-       </div>
+    <div id="card_data" class=" card  d-block">
+        <div id="data_demo" class=" ">
+            <div class="d-flex">
+                <input id="my_input" class="form-control" type="text" placeholder="请输入数据"
+                       oninput="inputData()">
+                <button type="button" class="btn btn-primary" onclick="addOneDataItem()">添加一项并刷新</button>
             </div>
-            <nav aria-label="Page navigation example">
-                <ul class="pagination">
-                    <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                </ul>
-            </nav>
-
         </div>
-        <div class="col">
-            <div id="file_demo" class="card">
-                <div class="title fs-3">demo图片文件表</div>
-                <input id="my_input_file"  class="form-control" type="file" multiple oninput="changeFile()">
-            </div>
+        <nav id="page_nav" aria-label="Page navigation example">
+            <!--            <ul class="pagination">-->
+            <!--                <li class="page-item"><a class="page-link" href="#">Previous</a></li>-->
+            <!--                <li class="page-item"><a class="page-link" href="#">1</a></li>-->
+            <!--                <li class="page-item"><a class="page-link" href="#">2</a></li>-->
+            <!--                <li class="page-item"><a class="page-link" href="#">3</a></li>-->
+            <!--                <li class="page-item"><a class="page-link" href="#">Next</a></li>-->
+            <!--            </ul>-->
+        </nav>
+
+    </div>
+    <div id="card_file" class=" card ">
+        <div id="file_demo" class="">
+            <input id="my_input_file" class="form-control" type="file" multiple oninput="changeFile()">
         </div>
     </div>
 
 
-
-
 </div>
+<script>
+    var tabName = 'demo'
+    var navLinks = document.querySelectorAll(".nav.nav-tabs .nav-item .nav-link")
+    var cards = document.querySelectorAll(".card")
+
+    function showDemo(type) {
+        tabName = type
+        navLinks.forEach(el => {
+            el.classList.remove("active")
+        })
+        cards.forEach(el => {
+            el.classList.remove("d-block")
+        })
+        var tab_a = document.getElementById("a_" + type)
+        tab_a.classList.add("active")
+        var card_div = document.getElementById("card_" + type)
+        card_div.classList.add("d-block")
+    }
+</script>
 <script>
     var indexedStore = new IndexdbStore({
         name: "myindexdb", // 你的indexdb数据库名称
@@ -98,62 +126,177 @@
         }
     }
 
+    var page = 1, pagesize = 10, total = 0
+    var page_nav_el = document.getElementById("page_nav")
+
+    function setPageComponent(page, pagesize, total) {
+        var all_pages = Math.ceil(total / pagesize)
+
+        if (all_pages > 5) {
+            let temparr = []
+
+            if(page - 1 > 1) {
+                temparr.push({
+                    page: 1,
+                    type: 'page',
+                })
+                if(page - 2 > 1) {
+                    temparr.push({
+                        name: "..."
+                    })
+                }
+            }
+
+            if(page-1 >= 1) {
+                temparr.push({
+                    page: page-1,
+                    type: 'page',
+                })
+
+            }
+            temparr.push({
+                page: page,
+                type: 'page',
+            })
+            if(page + 1 <= all_pages) {
+                temparr.push({
+                    page: page+1,
+                    type: 'page',
+                })
+            }
+            if(page + 1 < all_pages) {
+               if(page + 2 < all_pages) {
+                   temparr.push({
+                       name: '...'
+                   })
+               }
+                temparr.push({
+                    page: all_pages,
+                    type: 'page',
+                })
+            }
+
+            temparr.forEach(item => {
+                if(item.type==='page') {
+                    item.click = function (item) {
+                        changePage(item.page)
+                    }
+                }
+            })
+
+            createPageDot(page_nav_el, "nav_ul", [{
+                name: 'prev',
+                type: 'prev',
+                click: item => {
+                    prevPage()
+                }
+            }, ...temparr, {
+                name: 'next',
+                type: 'next',
+                click: item => {
+                    nextPage()
+                }
+            }], page)
+        } else {
+            let temparr = []
+            for (let i = 0; i < all_pages; i++) {
+                temparr.push({
+                    name: i + 1,
+                    page: i + 1,
+                    type: 'page',
+                    click: (item) => {
+                        changePage(item.page)
+                    }
+                })
+            }
+            createPageDot(page_nav_el, "nav_ul", [{
+                name: 'prev',
+                type: 'prev',
+                click: item => {
+                    prevPage()
+                }
+            }, ...temparr, {
+                name: 'next',
+                type: 'next',
+                click: item => {
+                    nextPage()
+                }
+            }], page)
+        }
+    }
+
+    function prevPage() {
+        var all_pages = Math.ceil(total / pagesize)
+        if(all_pages === 1) return
+        if (page === 1) {
+            page = all_pages
+        } else {
+            page = page - 1
+        }
+        queryPage()
+    }
+
+    function nextPage() {
+        var all_pages = Math.ceil(total / pagesize)
+        if(all_pages === 1) return
+        if (page === all_pages) {
+            page = 1
+        } else {
+            page = page + 1
+        }
+        queryPage()
+    }
+
+    function changePage(in_page) {
+        if(page === in_page) return
+        page = in_page
+        queryPage()
+    }
+
     async function queryPage() {
-        const page = 1
-        const pagesize = 10
         const res = await indexedStore.queryPage('demoStore', null, null, page, pagesize)
         if (res.code === 0) {
+            total = res.data.total
             refreshList(res.data.list)
+            setPageComponent(page, pagesize, total)
+        }
+    }
+
+    async function deleteItem(id) {
+        const res = await indexedStore.delItem('demoStore', id)
+        console.log(res)
+        if (res.code === 0) {
+            queryPage()
         }
     }
 
     queryPage()
 
     let data_demo_el = document.getElementById("data_demo")
-    let my_table
 
     function refreshList(list) {
-        if (my_table) {
-            data_demo_el.removeChild(my_table)
-            my_table = null
-        }
-        my_table = document.createElement("table")
-        my_table.id = "my_table"
-        my_table.classList.add("table")
-        my_table.classList.add("table-striped")
-        my_table.classList.add("table-hover")
-        const thead = document.createElement("thead")
-        const tr = document.createElement("tr")
-        const th_id = document.createElement("th")
-        const th_data = document.createElement("th")
-        const th_addtimeformat = document.createElement("th")
-        th_id.innerText = "编号"
-        th_data.innerText = "数据"
-        th_addtimeformat.innerText = "创建时间"
-        tr.appendChild(th_id)
-        tr.appendChild(th_data)
-        tr.appendChild(th_addtimeformat)
-        thead.appendChild(tr)
-        my_table.appendChild(thead)
-
-        const tbody = document.createElement("tbody")
-        tbody.classList.add("table-group-divider")
-        list.forEach(item => {
-            const {id, data, addtimeformat} = item
-            const tr = document.createElement("tr")
-            const td_id = document.createElement("td")
-            const td_data = document.createElement("td")
-            const td_addtimeformat = document.createElement("td")
-            td_id.innerText = id
-            td_data.innerText = data
-            td_addtimeformat.innerText = addtimeformat
-            tr.appendChild(td_id)
-            tr.appendChild(td_data)
-            tr.appendChild(td_addtimeformat)
-            tbody.appendChild(tr)
-        })
-        my_table.appendChild(tbody)
-        data_demo_el.appendChild(my_table)
+        createFileTable(data_demo_el, "my_table", list, [{
+            key: "id",
+            type: 'data',
+            name: "编号"
+        }, {
+            key: "data",
+            type: 'data',
+            name: "数据"
+        }, {
+            key: "addtimeformat",
+            type: 'data',
+            name: "创建时间"
+        }, {
+            type: "btns",
+            name: "操作",
+            btns: [{
+                name: '删除',
+                click: (item) => {
+                    deleteItem(item.id)
+                }
+            }]
+        }])
     }
 </script>
 
@@ -212,71 +355,47 @@
     async function queryAll() {
         const res = await indexedStore.queryAll('imageList', null, null,)
         if (res.code === 0) {
-            createFileTable(res.data)
+            refreshFileListTable(res.data)
         }
     }
 
     queryAll()
 
-
-
-
-    function createFileTable(list) {
-        if (my_table_file) {
-            file_demo_el.removeChild(my_table_file)
-            my_table_file = null
+    async function delFileItem(id) {
+        const res = await indexedStore.delItem('imageList', id)
+        if (res.code === 0) {
+            queryAll()
         }
-        my_table_file = document.createElement("table")
-        my_table_file.id = "my_table_file"
-        my_table_file.classList.add("table")
-        my_table_file.classList.add("table-striped")
-        my_table_file.classList.add("table-hover")
+    }
 
-        const thead = document.createElement("thead")
-        const tr = document.createElement("tr")
-        const th_id = document.createElement("th")
-        const th_data = document.createElement("th")
-        const th_img = document.createElement("th")
-        const th_addtimeformat = document.createElement("th")
-        th_id.innerText = '编号'
-        th_data.innerText = '名称'
-        th_img.innerText = '图片'
-        th_addtimeformat.innerText = '创建时间'
-        tr.appendChild(th_id)
-        tr.appendChild(th_data)
-        tr.appendChild(th_img)
-        tr.appendChild(th_addtimeformat)
-        thead.appendChild(tr)
-        my_table_file.appendChild(thead)
-        const tbody = document.createElement("tbody")
-        tbody.classList.add("table-group-divider")
-        list.forEach(item => {
-            const {id, name, addtimeformat, url} = item
-            const tr = document.createElement("tr")
-            const td_id = document.createElement("td")
-            const td_data = document.createElement("td")
-            const td_img = document.createElement("td")
-            const td_addtimeformat = document.createElement("td")
-            td_id.innerText = id
-            td_data.innerText = name
 
-            const img = document.createElement("img")
-            img.src = url
-            img.width = 100
-            img.height = 100
-            img.style.objectFit = 'cover'
-            img.classList.add("rounded")
-
-            td_img.appendChild(img)
-            td_addtimeformat.innerText = addtimeformat
-            tr.appendChild(td_id)
-            tr.appendChild(td_data)
-            tr.appendChild(td_img)
-            tr.appendChild(td_addtimeformat)
-            tbody.appendChild(tr)
-        })
-        my_table_file.appendChild(tbody)
-        file_demo_el.appendChild(my_table_file)
+    function refreshFileListTable(list) {
+        createFileTable(file_demo_el, "my_table_file", list, [{
+            key: "id",
+            type: 'data',
+            name: "编号"
+        }, {
+            key: "name",
+            type: 'data',
+            name: "名称"
+        }, {
+            key: "url",
+            type: 'image',
+            name: "图片"
+        }, {
+            key: "addtimeformat",
+            type: 'data',
+            name: "创建时间"
+        }, {
+            type: "btns",
+            name: "操作",
+            btns: [{
+                name: '删除',
+                click: (item) => {
+                    delFileItem(item.id)
+                }
+            }]
+        }])
 
     }
 </script>
