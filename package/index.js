@@ -64,8 +64,16 @@ class IndexdbStore {
     db = null // IndexedDB 封装对象
 
     constructor(options) {
+        let name = 'indexeddbname', version = 1, stores = []
+        if(options) {
+            name = options.name || name
+            version = options.version || version
+            stores = options.stores || stores
+        }
         if (!this.db) {
-            this.rebuild(options)
+            this.rebuild({
+                name, version, stores,
+            })
         }
     }
 
@@ -91,6 +99,7 @@ class IndexdbStore {
     /**
      * 新增数据
      * 会自动添加addtime和addtimeformat字段
+     * 会自动添加[mainKey](主键)字段
      * @param {String} storeName 表名
      * @param {Object} data 数据
      * @returns {Object} {code,data,msg}
@@ -136,6 +145,7 @@ class IndexdbStore {
     /**
      * 批量新增数据
      * 会自动添加addtime和addtimeformat字段
+     * 会自动添加[mainKey](主键)字段
      * @param {String} storeName 表名
      * @param {Array} list 数据列表
      * @returns {Object} {code,data,msg}
